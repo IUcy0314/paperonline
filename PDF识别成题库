@@ -1,0 +1,127 @@
+请处理我上传的 PDF 扫描版题库文件，忽略右下角“扫描全能王”等水印、二维码、手写勾画、圈画、划线、批注，只提取正式印刷的题目内容和可确认的答案内容。
+
+请按以下要求完成：
+
+1. 从 PDF 扫描图片中识别所有题目文本，包括题干、选项和答案。
+
+2. 对有明确答案的题目，自动录入答案。
+
+3. 对没有答案、答案缺失、答案模糊、答案无法可靠匹配的题目，不要自行猜测，统一标记为待录入答案。
+
+4. 对存在以下情况的题目，请删除整道题，不要放入正式题库：
+
+   * OCR 不清
+   * 题干残缺
+   * 选项残缺
+   * 无法判断题意
+   * 无法确定选项边界
+   * 题目与选项无法可靠对应
+
+5. 被删除的题目不要直接丢弃，必须单独整理成删除题目清单，输出给用户。
+
+6. 删除不清晰题目后，把剩余题库转换成本地 HTML 离线刷题软件可用的 JavaScript 题库格式。
+
+正式题库输出格式必须为：
+
+const QUESTIONS = [...]
+
+删除题目清单输出格式必须为：
+
+const DELETED_QUESTIONS = [...]
+
+每道正式题目只保留以下字段：
+
+* type
+* question
+* options
+* answer
+* answerStatus
+
+不要在正式题目中包含以下字段：
+
+* explanation
+* analysis
+* id
+* source
+* page
+* note
+
+题型规则：
+
+* 单选题 type 使用 "single"
+* 多选题 type 使用 "multiple"
+* 判断题也按单选题处理，type 使用 "single"，options 固定为 ["正确", "错误"]
+
+题目内容规则：
+
+* question 只放题干
+* options 只放选项文本，不要带 A、B、C、D 编号
+* 不要保留原题号
+* 如果题干中有空格或括号用于作答，可以保留为空白形式，如“（ ）”或“____”
+
+答案录入规则：
+
+* 如果题目有明确答案，answerStatus 为 "confirmed"
+* 如果题目没有答案或答案无法确认，answerStatus 为 "missing"
+* 单选题 answer 使用选项下标数字，从 0 开始，例如 A 对应 0，B 对应 1，C 对应 2，D 对应 3
+* 多选题 answer 使用选项下标数组，例如答案为 A、C，则 answer 为 [0, 2]
+* 判断题 answer 使用 0 或 1，其中 0 表示“正确”，1 表示“错误”
+* 无答案题目 answer 统一填写 null
+
+对无答案题目必须保留题目本身，不要删除，只标记：
+answer: null,
+answerStatus: "missing"
+
+删除题目清单规则：
+
+* 只有因 OCR 不清、题干残缺、选项残缺、无法判断题意、无法确定选项边界等原因删除的题目，才放入 DELETED_QUESTIONS
+* 答案缺失不是删除理由，答案缺失的题目应保留在 QUESTIONS 中，并标记 answerStatus: "missing"
+* DELETED_QUESTIONS 中每条记录包含以下字段：
+
+  * originalNumber：原题号，如无法识别则填 null
+  * rawText：能识别出的原始残缺文本
+  * reason：删除原因
+  * page：所在页码，如无法判断则填 null
+
+最终只输出 JavaScript 代码，不要输出解释、说明、处理过程、统计信息或 Markdown。
+
+请直接输出：
+
+const QUESTIONS = [
+{
+type: "single",
+question: "...",
+options: ["...", "...", "...", "..."],
+answer: 1,
+answerStatus: "confirmed"
+},
+{
+type: "multiple",
+question: "...",
+options: ["...", "...", "...", "..."],
+answer: [0, 2],
+answerStatus: "confirmed"
+},
+{
+type: "single",
+question: "...",
+options: ["...", "...", "...", "..."],
+answer: null,
+answerStatus: "missing"
+}
+];
+
+const DELETED_QUESTIONS = [
+{
+originalNumber: "12",
+rawText: "题干或选项残缺的原始文本...",
+reason: "选项残缺，无法确定选项边界",
+page: 3
+},
+{
+originalNumber: null,
+rawText: "OCR 无法完整识别的题目残片...",
+reason: "OCR 不清，无法判断题意",
+page: null
+}
+];
